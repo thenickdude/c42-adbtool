@@ -1,0 +1,12 @@
+[submodule "cryptopp"]
+	path = cryptopp
+	url = https://github.com/weidai11/cryptopp.git
+[submodule "boost"]
+	path = boost
+	url = https://github.com/boostorg/boost.git
+[submodule "leveldb"]
+	path = leveldb
+	url = https://github.com/google/leveldb.git
+[submodule "zlib"]
+	path = zlib
+	url = https://github.com/madler/zlib.git
