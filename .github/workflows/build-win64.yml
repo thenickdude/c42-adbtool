@@ -1,0 +1,37 @@
+name: Build Win64
+on: [push]
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            make
+            mingw-w64-ucrt-x86_64-make
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-gcc
+      - name: Build
+        run: make
+      - name: Test
+        run: make test
+#     - name: Setup tmate session
+#       if: ${{ failure() }}
+#       uses: mxschmitt/action-tmate@v3
+#       timeout-minutes: 15
+#       with:
+#         limit-access-to-actor: true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: c42-adbtool-windows.exe
+          path: c42-adbtool.exe

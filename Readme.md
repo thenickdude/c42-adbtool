@@ -167,13 +167,14 @@ Or read the value into a file instead of printing it to stdout:
 
 ```bash
 $ sudo ./c42-adbtool read --adb --key compliance_enforce --value-file output
+$ xxd output
 00
 ```
 
 To write a value to a key, use the `write` command:
 
 ```bash
-$ sudo ./c42-adbtool write --adb --key compliance_enforce --format hex --value 01 
+$ sudo ./c42-adbtool write --adb --key compliance_enforce --format hex --value 01
 ```
 
 Or you can supply a value from stdin, which makes editing larger values easy:
@@ -198,8 +199,10 @@ If you don't want to use one of the precompiled releases from the Releases tab a
 You need a C++ compiler, make and cmake installed (e.g. `apt install build-essential make cmake git` on Ubuntu Xenial).
 Clone this repository, then run `make`, and all of the libraries will be fetched and built, followed by c42-adbtool itself.
 
-On Windows, build c42-adbtool using [Msys2](https://www.msys2.org/)'s UCRT64 environment, and install these packages:
+On Windows, build c42-adbtool using [Msys2](https://www.msys2.org/)'s UCRT64 environment, install these packages,
+and build with "make":
 
 ```
-pacman -S git mingw-w64-ucrt-x86_64-{make,cmake,ninja,gcc}
+$ pacman -S git make mingw-w64-ucrt-x86_64-{make,cmake,ninja,gcc}
+$ make
 ```

@@ -1,4 +1,4 @@
-.PHONY: all clean release clean-deps
+.PHONY: all clean release clean-deps test
 
 OBJECTS = c42-adbtool.o adb.o common.o crypto.o
 SUBMODULES = cryptopp/Readme.txt zlib/README boost/README.md leveldb/README.md
@@ -10,24 +10,31 @@ UNAME := $(shell uname)
 
 MSYS_VERSION := $(if $(findstring Msys, $(shell uname -o)),$(word 1, $(subst ., ,$(shell uname -r))),0)
 
+NUMPROCS = $(shell nproc || getconf _NPROCESSORS_ONLN || echo 2)
+
+LINKER_OPTIONS = -Wall --std=c++14 -O3 -g3
+COMPILER_OPTIONS = -Wall --std=c++14 -O3 -g3
+
 ifeq ($(MSYS_VERSION), 0)
 	ifeq ($(UNAME), Darwin)
-	# macOS
-	LINK_OS_LIBS = -framework CoreFoundation -framework IOKit
+		# macOS
+		LINKER_OPTIONS += -framework CoreFoundation -framework IOKit
 	else 
-	# Linux
-	LINK_OS_LIBS =
+		# Linux
+		
+		# Fix GCC bug 52590 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=52590
+		LINKER_OPTIONS += -Wl,--whole-archive -lpthread -lrt -Wl,--no-whole-archive
+		COMPILER_OPTIONS += -pthread
 	endif
 else
-# Windows:
-LINK_OS_LIBS = -lcrypt32 -lole32 -luuid
+	# Windows:
+	LINKER_OPTIONS += -lcrypt32 -lole32 -luuid
 endif
 
-ifeq ($(UNAME), Darwin)
-# Can't make a static build on macOS, but the dynamic version works nicely anyway:
-STATIC_OPTIONS =
-else
-STATIC_OPTIONS = -static -static-libgcc -static-libstdc++
+ifneq ($(UNAME), Darwin)
+	# Can't make a static build on macOS, but the dynamic version works nicely anyway:
+	LINKER_OPTIONS += -static -static-libgcc -static-libstdc++
+	COMPILER_OPTIONS += -static -static-libgcc -static-libstdc++
 endif
  
 all : c42-adbtool
@@ -38,14 +45,14 @@ $(SUBMODULES) :
 	git submodule update --init
 
 cryptopp/libcryptopp.a :
-	cd cryptopp && make
+	cd cryptopp && make -j $(NUMPROCS)
 
 leveldb/build/libleveldb.a :
 	mkdir -p leveldb/build
-	cd leveldb/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DLEVELDB_BUILD_TESTS=OFF -DLEVELDB_BUILD_BENCHMARKS=OFF && cmake --build .
+	cd leveldb/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DLEVELDB_BUILD_TESTS=OFF -DLEVELDB_BUILD_BENCHMARKS=OFF && cmake --build . -j $(NUMPROCS)
 
 zlib/libz.a :
-	cd zlib && ./configure && make
+	cd zlib && ./configure && make -j $(NUMPROCS)
 
 boost/boost/ : zlib/libz.a
 	cd boost && git submodule update --init && ./bootstrap.sh
@@ -59,14 +66,30 @@ $(BOOST_LIBS) : zlib/libz.a
 	touch -c $(BOOST_LIBS) # Ensure it becomes newer than libz so we don't keep rebuilding it
 
 c42-adbtool : $(SUBMODULES) $(OBJECTS) comparator.o $(STATIC_LIBS)
-	$(CXX) $(STATIC_OPTIONS) -Wall --std=c++14 -O3 -g3 -o $@ $(OBJECTS) comparator.o $(STATIC_LIBS) $(LINK_OS_LIBS)
+	$(CXX) -o $@ $(OBJECTS) comparator.o $(STATIC_LIBS) $(LINKER_OPTIONS) 
 
 # Needs to be compiled separately so we can use fno-rtti to be compatible with leveldb:
 comparator.o : comparator.cpp
-	$(CXX) $(STATIC_OPTIONS) -c -fno-rtti -Wall --std=c++14 -O3 -g3 -o $@ -Ileveldb/include $<
+	$(CXX) $(COMPILER_OPTIONS) -c -fno-rtti -o $@ -Ileveldb/include $<
 
 %.o : %.cpp boost/boost/ $(STATIC_LIBS)
-	 $(CXX) $(STATIC_OPTIONS) -c -Wall --std=c++14 -O3 -g3 -o $@ -Iboost -Ileveldb/include -Izlib  $<
+	 $(CXX) $(COMPILER_OPTIONS) -c -o $@ -Iboost -Ileveldb/include -Izlib  $<
+
+test: c42-adbtool
+	rm -rf test/adb-temp
+	cp -r test/adb test/adb-temp
+	./c42-adbtool read --path test/adb-temp --key compliance_enforce --format hex | grep -q '^00$$'
+	./c42-adbtool write --path test/adb-temp --key compliance_enforce --format hex --value 01 
+	./c42-adbtool read --path test/adb-temp --key compliance_enforce --format hex | grep -q '^01$$'
+	./c42-adbtool write --path test/adb-temp --key hello --value world
+	./c42-adbtool read --path test/adb-temp --key hello | grep -q '^world$$'
+	echo "there" | ./c42-adbtool write --path test/adb-temp --key hello
+	./c42-adbtool read --path test/adb-temp --key hello | grep -q '^there$$'
+	./c42-adbtool delete --path test/adb-temp --key hello
+	echo "everybody" > test/adb-temp/hello
+	./c42-adbtool write --path test/adb-temp --key hello --value-file test/adb-temp/hello
+	./c42-adbtool read --path test/adb-temp --key hello | grep -q '^everybody$$'
+	rm -rf test/adb-temp
 
 clean :
 	rm -f c42-adbtool c42-adbtool.exe *.o

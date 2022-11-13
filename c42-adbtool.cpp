@@ -242,12 +242,12 @@ int main(int argc, char **argv) {
         std::cerr << "Couldn't find your ADB path automatically, supply a --path option instead" << std::endl;
         return EXIT_FAILURE;
     }
-
+    
     ADB *adb;
-
+    
     try {
         adb = new ADB(
-            adbPath.string(),
+            adbPath.string(), 
             vm.count("mac-serial") ? vm["mac-serial"].as<std::string>() : "",
             vm.count("linux-serial") ? vm["linux-serial"].as<std::string>() : ""
         );

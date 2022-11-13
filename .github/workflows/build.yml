@@ -1,0 +1,26 @@
+name: Build Linux and Mac
+on: [push]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest,macos-latest]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Build
+        run: make
+      - name: Test
+        run: make test
+#     - name: Setup tmate session
+#       if: ${{ failure() }}
+#       uses: mxschmitt/action-tmate@v3
+#       timeout-minutes: 15
+#       with:
+#         limit-access-to-actor: true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: c42-adbtool-${{ runner.os }}
+          path: c42-adbtool
