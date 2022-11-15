@@ -1,4 +1,4 @@
-.PHONY: all clean release clean-deps test
+.PHONY: all clean release clean-deps sign test
 
 OBJECTS = c42-adbtool.o adb.o common.o crypto.o
 SUBMODULES = cryptopp/Readme.txt zlib/README boost/README.md leveldb/README.md
@@ -14,6 +14,9 @@ NUMPROCS = $(shell nproc || getconf _NPROCESSORS_ONLN || echo 2)
 
 LINKER_OPTIONS = -Wall --std=c++14 -O3 -g3
 COMPILER_OPTIONS = -Wall --std=c++14 -O3 -g3
+
+#CODE_SIGNING_IDENTITY=Developer ID Application: Nicholas Sherlock (8J3T27D935)
+#CODE_SIGNING_KEYCHAIN_PROFILE=n.sherlock
 
 ifeq ($(MSYS_VERSION), 0)
 	ifeq ($(UNAME), Darwin)
@@ -74,6 +77,18 @@ comparator.o : comparator.cpp
 
 %.o : %.cpp boost/boost/ $(STATIC_LIBS)
 	 $(CXX) $(COMPILER_OPTIONS) -c -o $@ -Iboost -Ileveldb/include -Izlib  $<
+
+ifdef CODE_SIGNING_IDENTITY
+sign: c42-adbtool-macOS.zip 
+
+c42-adbtool-macOS.zip : c42-adbtool
+	codesign -s "$(CODE_SIGNING_IDENTITY)" --force --options=runtime --timestamp $<
+	zip $@ $<
+	xcrun notarytool \
+		submit \
+		--keychain-profile $(CODE_SIGNING_KEYCHAIN_PROFILE) \
+		"$@"
+endif
 
 test: c42-adbtool
 	rm -rf test/adb-temp
