@@ -145,14 +145,11 @@ std::string commandReadKey(ADB *adb, const std::string &key, ValueFormat format)
 }
 
 void commandWriteKey(ADB *adb, const std::string &key, const std::string &value, ValueFormat format) {
-    std::string finalValue;
+    std::string finalValue(value);
 
     if (format == VF_HEX) {
-        finalValue = value;
         boost::trim(finalValue);
         finalValue = hexStringToBin(finalValue);
-    } else {
-        finalValue = value;
     }
 
     adb->writeKey(ADB_KEY_PREFIX + key, finalValue);
@@ -260,10 +257,10 @@ int main(int argc, char **argv) {
         std::cerr << "You may need to run using sudo to have enough permission to read that directory." << std::endl << std::endl;
 #endif
         std::cerr << "Also check that the CrashPlan service is not running (it holds a lock on ADB), try one of these:" << std::endl << std::endl;
-        std::cerr << "  macOS   - sudo launchctl unload /Library/LaunchDaemons/com.code42.service.plist" << std::endl;
-        std::cerr << "  Windows - net stop \"Code42 Service\"" << std::endl;
-        std::cerr << "  Linux   - sudo /usr/local/crashplan/bin/service.sh stop" << std::endl;
-        std::cerr << "  Other   - https://support.code42.com/Incydr/Agent/Troubleshooting/Stop_and_start_the_Code42_app_service" << std::endl;
+        std::cerr << "  macOS   - sudo launchctl unload /Library/LaunchDaemons/com.crashplan.service.plist" << std::endl;
+        std::cerr << "  Windows - net stop \"CrashPlan Service\"" << std::endl;
+        std::cerr << "  Linux   - sudo systemctl stop crashplan.service" << std::endl;
+        std::cerr << "  Other   - https://support.crashplan.com/hc/en-us/articles/8971613609997--Stop-and-start-the-app-service" << std::endl;
 
         return EXIT_FAILURE;
     }

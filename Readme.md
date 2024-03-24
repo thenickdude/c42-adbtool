@@ -8,10 +8,10 @@ n.b. it'd be easy to accidentally trash your backup by doing this.
 
 First you'll need to stop the CrashPlan service so that it releases its lock on the database:
 
-Windows - `net stop "Code42 Service"` (or if you installed it for a single user, End Task the Code42 process)
-macOS - `sudo launchctl unload /Library/LaunchDaemons/com.code42.service.plist`   
-Linux - `sudo /usr/local/crashplan/bin/service.sh stop`  
-Other - https://support.code42.com/Incydr/Agent/Troubleshooting/Stop_and_start_the_Code42_app_service
+Windows - `net stop "CrashPlan Service"` (or if you installed it for a single user, End Task the "CrashPlan Service" process)
+macOS - `sudo launchctl unload /Library/LaunchDaemons/com.crashplan.service.plist`   
+Linux - `sudo systemctl stop crashplan.service`  
+Other - https://support.crashplan.com/hc/en-us/articles/8971613609997--Stop-and-start-the-app-service
 
 The ADB directory is found here: (and the UDB directory is next to it)
 
