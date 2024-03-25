@@ -103,10 +103,16 @@ void commandListEntries(ADB *adb) {
     adb->readAllEntries(values);
 
     for (auto pair : values) {
+        if (pair.first.empty() || pair.first[0] != ADB_KEY_PREFIX[0]) {
+            // There seems to be "version 2" keys prefixed with \x02 instead, but these values don't serve an obvious purpose
+            // Skip them since we'll only offer to write \x01 keys anyway
+            continue;
+        }
+
         bool printable = true;
 
         for (int i = 0; i < pair.second.length(); i++) {
-            if (!isprint(pair.second[i]) && !isspace(pair.second[i])) {
+            if (pair.second[i] < ' ' || pair.second[i] > '~') {
                 printable = false;
                 break;
             }
@@ -126,7 +132,9 @@ void commandListKeys(ADB *adb) {
     adb->readAllKeys(values);
 
     for (auto key : values) {
-        std::cout << trimADBKeyPrefix(key) << std::endl;
+        if (!key.empty() && key[0] == ADB_KEY_PREFIX[0]) {
+            std::cout << trimADBKeyPrefix(key) << std::endl;
+        }
     }
 }
 
